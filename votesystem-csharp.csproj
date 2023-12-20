@@ -7,4 +7,14 @@
     <RootNamespace>votesystem_csharp</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <UpToDateCheckBuilt Include="wwwroot/css/main.css" Set="Css" />
+    <UpToDateCheckBuilt Include="tailwind.config.js" Set="Css" />
+  </ItemGroup>
+
+  <Target Name="Tailwind" BeforeTargets="Build">
+    <Copy SourceFiles="node_modules/preline/dist/preline.js" DestinationFolder="wwwroot/js" />
+    <Exec Command="npm run build"/>
+  </Target>
+
 </Project>
