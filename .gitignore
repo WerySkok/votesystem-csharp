@@ -77,3 +77,8 @@ _[Ss]cripts
 # Node.JS packages #
 ####################
 node_modules/
+
+config.json
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal

@@ -12,9 +12,13 @@
     <UpToDateCheckBuilt Include="tailwind.config.js" Set="Css" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="7.0.14" />
+  </ItemGroup>
+
   <Target Name="Tailwind" BeforeTargets="Build">
     <Copy SourceFiles="node_modules/preline/dist/preline.js" DestinationFolder="wwwroot/js" />
-    <Exec Command="npm run build"/>
+    <Exec Command="npm run build" />
   </Target>
 
 </Project>
