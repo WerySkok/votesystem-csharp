@@ -17,7 +17,7 @@ public class User
     public List<Role> Roles { get; set; } = new();
     public List<Vote> Votes { get; set; } = new();
 
-    public static async Task OnLogin(OAuthCreatingTicketContext ctx, string serverId)
+    public static async Task OnLogin(OAuthCreatingTicketContext ctx, string serverId, string adminRoleId) // Creates user while logging in
     {
         ApplicationContext db = ctx.HttpContext.RequestServices.GetService<ApplicationContext>()!;
         var httpClient = new HttpClient();
@@ -55,7 +55,7 @@ public class User
             {
                 db.Roles.Remove(role);
             }
-
+            existingUser.IsAdmin = false;
         }
 
         var rolesResponse = await httpClient.GetAsync($"https://discord.com/api/v10/users/@me/guilds/{serverId}/member");
@@ -63,12 +63,16 @@ public class User
 
         foreach (var jsonElement in rolesJson.GetProperty("roles").EnumerateArray())
         {
-            db.Roles.Add(new Role { RoleDiscordId = jsonElement.GetString(), User = existingUser, UserId = existingUser.Id });
+            db.Roles.Add(new Role { RoleDiscordId = jsonElement.GetString()!, User = existingUser, UserId = existingUser.Id });
+            if (jsonElement.GetString() == adminRoleId)
+            {
+                existingUser.IsAdmin = true;
+            }
         }
 
         await db.SaveChangesAsync();
     }
-    public async static Task<User?> GetUser(HttpContext HttpContext)
+    public static async Task<User?> GetUser(HttpContext HttpContext)
     {
         var dbContext = HttpContext.RequestServices.GetService<ApplicationContext>()!;
         if (!(HttpContext.User?.Identity?.IsAuthenticated ?? false)) return null;
@@ -78,5 +82,17 @@ public class User
             return await dbContext.Users.FirstOrDefaultAsync(u => u.DiscordUserId == userIdClaim);
         }
         return null;
+    }
+
+    public bool HasRoles(ApplicationContext db, params string[] allowedRoles)
+    {
+        db.Roles.Where(r => r.UserId == Id).Load();
+
+        if (Roles == null || allowedRoles == null || !Roles.Any() || !allowedRoles.Any())
+        {
+            return false;
+        }
+
+        return Roles.Any(role => allowedRoles.Contains(role.RoleDiscordId));
     }
 }

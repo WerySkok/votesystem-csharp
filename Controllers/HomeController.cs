@@ -7,22 +7,21 @@ namespace votesystem_csharp.Controllers;
 public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
-    private ApplicationContext db;
-    public HomeController(ILogger<HomeController> logger, ApplicationContext context)
+    private readonly ApplicationContext _db;
+    private readonly IConfiguration _configuration;
+    public HomeController(ILogger<HomeController> logger, ApplicationContext context, IConfiguration configuration)
     {
         _logger = logger;
-        db = context;
+        _db = context;
+        _configuration = configuration;
     }
 
     [Route("")]
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
-        return View();
-    }
-
-    [Route("privacy")]
-    public IActionResult Privacy()
-    {
+        ViewBag.User = await Models.User.GetUser(HttpContext);
+        string[] allowedRoles = _configuration.GetSection("discord:eligible_roles_ids").Get<string[]>()!;
+        ViewBag.IsUserElligible = ViewBag.User?.HasRoles(_db, allowedRoles) ?? false;
         return View();
     }
 

@@ -10,7 +10,6 @@ public class AuthenticationController : Controller
     [HttpGet("~/login")]
     public IActionResult Login() => Challenge(new AuthenticationProperties { RedirectUri = "/" }, "Discord");
 
-    [HttpGet("~/logout")]
     [HttpPost("~/logout")]
     public IActionResult LogOutCurrentUser()
     {

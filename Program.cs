@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using votesystem_csharp.Models;
 
@@ -13,7 +14,7 @@ internal class Program
         // Add services to the container.
         builder.Services.AddControllersWithViews();
         builder.Configuration.AddJsonFile("config.json");
-        string connection = builder.Configuration.GetConnectionString("DefaultConnection");
+        string connection = builder.Configuration.GetConnectionString("DefaultConnection")!;
         builder.Services.AddDbContext<ApplicationContext>(options => options.UseSqlite(connection));
 
         builder.Services.AddAuthentication(options =>
@@ -25,17 +26,25 @@ internal class Program
                     options.LoginPath = "/login";
                     options.LogoutPath = "/logout";
                 })
-                .AddDiscord(async options =>
+                .AddDiscord(options =>
                 {
                     options.ClientId = builder.Configuration["discord:client_id"]!;
                     options.ClientSecret = builder.Configuration["discord:client_secret"]!;
 
                     options.Scope.Add("guilds.members.read");
-                    options.Events.OnCreatingTicket = ctx => User.OnLogin(ctx, builder.Configuration["discord:server_id"]!);
+                    options.Events.OnCreatingTicket = async ctx => await User.OnLogin(ctx, builder.Configuration["discord:server_id"]!, builder.Configuration["discord:admin_role"]!);
                 }
     );
 
-        builder.Services.AddAuthorization();
+        builder.Services.AddAuthorization(options =>
+        {
+            options.AddPolicy("Admins", policy => policy.AddRequirements(new RolesRequirement(builder.Configuration["discord:admin_role"]!)));
+            options.AddPolicy("Users", policy => policy.AddRequirements(new RolesRequirement(builder.Configuration.GetSection("discord:eligible_roles_ids").Get<string[]>()!)));
+        });
+
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddScoped<IAuthorizationHandler, RolesAuthorizationHandler>();
+
 
         var app = builder.Build();
 
