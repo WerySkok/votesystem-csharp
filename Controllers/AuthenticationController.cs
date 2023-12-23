@@ -5,8 +5,12 @@ using votesystem_csharp.Models;
 
 namespace votesystem_csharp.Controllers;
 
-public class AuthenticationController : Controller
+public class AuthenticationController : BaseController
 {
+    public AuthenticationController(ILogger<AuthenticationController> logger, ApplicationContext context, IConfiguration configuration) : base(logger, context, configuration)
+    {
+    }
+
     [HttpGet("~/login")]
     public IActionResult Login() => Challenge(new AuthenticationProperties { RedirectUri = "/" }, "Discord");
 

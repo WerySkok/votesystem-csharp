@@ -45,7 +45,7 @@ public class VoteController : BaseController
         return Redirect("/vote_success");
     }
     [HttpGet("vote_success")]
-    public async Task<IActionResult> VoteSuccessAsync()
+    public async Task<IActionResult> VoteSuccess()
     {
         ViewBag.CurrentElection = await _db.Elections.FirstOrDefaultAsync(e => e.StartTime < DateTime.Now && DateTime.Now < e.EndTime);
         return View();
