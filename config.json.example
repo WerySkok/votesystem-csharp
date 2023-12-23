@@ -1,0 +1,9 @@
+{
+    "discord": {
+        "client_id": "261911515928592385",
+        "client_secret": "CLIENT_SECRET_HERE",
+        "server_id": "1046082489099231312",
+        "admin_role": "1046083446772072489",
+        "eligible_roles_ids": ["1046818877918695554", "1046805707598598184"]
+    }
+}
