@@ -11,4 +11,8 @@ public class Election
     public required DateTime EndTime { get; set; }
     public List<Candidate> Candidates { get; set; } = new();
     public List<Vote> Votes { get; set; } = new();
+    public bool IsHappening()
+    {
+        return StartTime < DateTime.Now && DateTime.Now < EndTime;
+    }
 }

@@ -53,14 +53,13 @@
                     >
                         @if (user.IsAdmin)
                         {
-                            <a class="block px-3 py-2 rounded hover:bg-zinc-100" href="/admin"
-                                >Админка</a
-                            >
+                            <a class="block px-3 py-2 rounded hover:bg-zinc-100" href="/admin">
+                                Админка
+                            </a>
                         }
                         <form method="POST" action="/logout" role="none">
                             <button
                                 class="block px-3 py-2 w-full text-left rounded hover:bg-zinc-100"
-                                href="/logout"
                             >
                                 Выйти
                             </button>
@@ -78,7 +77,7 @@
                 </svg> Войти через Discord</a>
             }
         </header>
-        <main role="main">
+        <main role="main" class="px-4 md:mx-auto md:container">
             @RenderBody()
         </main>
         <footer class="px-8 py-4 border-t-2 text-zinc-500">
