@@ -6,16 +6,10 @@ using votesystem_csharp.Models;
 namespace votesystem_csharp.Controllers;
 [Route("admin")]
 [Authorize(Policy = "Admins")]
-public class AdminController : Controller
+public class AdminController : BaseController
 {
-    private readonly ILogger<AdminController> _logger;
-    private readonly ApplicationContext _db;
-    private readonly IConfiguration _configuration;
-    public AdminController(ILogger<AdminController> logger, ApplicationContext context, IConfiguration configuration)
+    public AdminController(ILogger<AdminController> logger, ApplicationContext context, IConfiguration configuration) : base(logger, context, configuration)
     {
-        _logger = logger;
-        _db = context;
-        _configuration = configuration;
     }
 
     [Route("")]
@@ -26,14 +20,14 @@ public class AdminController : Controller
     }
 
     [HttpGet("new_election")]
-    public async Task<IActionResult> NewElection()
+    public IActionResult NewElection()
     {
         return View();
     }
     [HttpPost("new_election")]
     public async Task<IActionResult> NewElection(string Title, DateTime StartTime, DateTime EndTime)
     {
-        if (Title == null || Title == "" || EndTime > StartTime) return BadRequest();
+        if (Title == null || Title == "" || EndTime < StartTime) return BadRequest();
         bool hasConflictingElections = _db.Elections.Any(e =>
             (StartTime >= e.StartTime && StartTime < e.EndTime) ||
             (EndTime > e.StartTime && EndTime <= e.EndTime) ||
@@ -49,13 +43,13 @@ public class AdminController : Controller
     [HttpGet("edit/{electionId:guid}")]
     public async Task<IActionResult> EditElection(Guid electionId)
     {
-        ViewBag.Candidates = await _db.Candidates.Where(c => c.ElectionId == electionId).ToListAsync();
+        ViewBag.Candidates = await _db.Candidates.Where(c => c.ElectionId == electionId).Include(c => c.Votes).ToListAsync();
         return View(await _db.Elections.FirstAsync(e => e.Id == electionId));
     }
     [HttpPost("edit/{ElectionId:guid}")]
     public async Task<IActionResult> EditElection(Guid ElectionId, string Title, DateTime StartTime, DateTime EndTime)
     {
-        if (Title == null || Title == "" || EndTime > StartTime) return BadRequest();
+        if (Title == null || Title == "" || EndTime < StartTime) return BadRequest();
         bool hasConflictingElections = _db.Elections.Any(e =>
             e.Id != ElectionId && ((StartTime >= e.StartTime && StartTime < e.EndTime) ||
             (EndTime > e.StartTime && EndTime <= e.EndTime) ||
