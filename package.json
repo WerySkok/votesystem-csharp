@@ -6,6 +6,7 @@
     "compress": "minify ./wwwroot/css/main.css > ./wwwroot/css/main.min.css"
   },
   "devDependencies": {
+    "@tailwindcss/forms": "^0.5.7",
     "autoprefixer": "^10.4.14",
     "minify": "^10.3.0",
     "postcss": "^8.4.26",
