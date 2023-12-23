@@ -66,7 +66,10 @@
                 <thead>
                     <tr>
                         <th scope="col" class="py-3 text-xs font-medium text-gray-500 uppercase text-start">Имя</th>
-                        <th scope="col" class="py-3 text-xs font-medium text-gray-500 uppercase text-start">Голосов</th>
+                        @if (DateTime.Now > Model.EndTime)
+                        {
+                            <th scope="col" class="py-3 text-xs font-medium text-gray-500 uppercase text-start">Голосов</th>
+                        }
                         <th scope="col" class="py-3 text-xs font-medium text-gray-500 uppercase text-end">Управление</th>
                     </tr>
                 </thead>
@@ -75,11 +78,14 @@
                     {
                         <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
                             <td class="py-4 text-sm font-medium text-gray-800 whitespace-nowrap">@candidate.DisplayName</td>
-                            <td class="py-4 text-sm font-medium text-gray-800 whitespace-nowrap">@candidate.Votes.Count</td>
+                            @if (DateTime.Now > Model.EndTime)
+                            {
+                                <td class="py-4 text-sm font-medium text-gray-800 whitespace-nowrap">@candidate.Votes.Count</td>
+                            }
                             <td class="py-4 text-sm font-medium whitespace-nowrap text-end">
                                 <form method="post" action="/admin/delete_candidate">
                                     <input type="hidden" name="CandidateId" value="@candidate.Id">                                
-                                    <input type="submit" class="inline-flex gap-x-2 items-center text-sm font-semibold text-red-600 rounded-lg border border-transparent hover:text-red-800 disabled:opacity-50 disabled:pointer-events-none" value="Удалить"/>
+                                    <button type="submit" class="inline-flex gap-x-2 items-center text-sm font-semibold text-red-600 rounded-lg border border-transparent hover:text-red-800 disabled:opacity-50 disabled:pointer-events-none">Удалить</button>
                                 </form>
                             </td>
                         </tr>

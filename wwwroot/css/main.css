@@ -809,6 +809,9 @@ video {
 .autofill\:pt-6:autofill{
   padding-top: 1.5rem;
 }
+.hover\:cursor-pointer:hover{
+  cursor: pointer;
+}
 .hover\:bg-\[\#4d59d3\]:hover{
   --tw-bg-opacity: 1;
   background-color: rgba(77, 89, 211, 1);
