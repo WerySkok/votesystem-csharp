@@ -1,5 +1,7 @@
+using System.Net;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using votesystem_csharp.Models;
 
@@ -30,6 +32,8 @@ internal class Program
                 {
                     options.ClientId = builder.Configuration["discord:client_id"]!;
                     options.ClientSecret = builder.Configuration["discord:client_secret"]!;
+                    options.CorrelationCookie.SameSite = SameSiteMode.Lax;
+                    options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
 
                     options.Scope.Add("guilds.members.read");
                     options.Events.OnCreatingTicket = async ctx => await User.OnLogin(ctx, builder.Configuration["discord:server_id"]!, builder.Configuration["discord:admin_role"]!);
@@ -54,13 +58,19 @@ internal class Program
         if (!app.Environment.IsDevelopment())
         {
             app.UseExceptionHandler("/error");
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+            });
             // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-            app.UseHsts();
+            //app.UseHsts();
         }
         else
         {
             app.UseDeveloperExceptionPage();
+            app.UseForwardedHeaders();
         }
+
 
         app.UseHttpsRedirection();
         app.UseStaticFiles();
