@@ -40,11 +40,9 @@ internal class Program
                 }
     );
 
-        builder.Services.AddAuthorization(options =>
-        {
-            options.AddPolicy("Admins", policy => policy.AddRequirements(new RolesRequirement(builder.Configuration["discord:admin_role"]!)));
-            options.AddPolicy("Users", policy => policy.AddRequirements(new RolesRequirement(builder.Configuration.GetSection("discord:eligible_roles_ids").Get<string[]>()!)));
-        });
+        builder.Services.AddAuthorizationBuilder()
+            .AddPolicy("Admins", policy => policy.AddRequirements(new RolesRequirement(builder.Configuration["discord:admin_role"]!)))
+            .AddPolicy("Users", policy => policy.AddRequirements(new RolesRequirement(builder.Configuration.GetSection("discord:eligible_roles_ids").Get<string[]>()!)));
 
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<IAuthorizationHandler, RolesAuthorizationHandler>();

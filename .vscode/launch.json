@@ -10,7 +10,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // Если вы изменили требуемые версии .NET Framework, обязательно обновите путь к программе.
-            "program": "${workspaceFolder}/bin/Debug/net7.0/votesystem-csharp.dll",
+            "program": "${workspaceFolder}/bin/Debug/net8.0/votesystem-csharp.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,
