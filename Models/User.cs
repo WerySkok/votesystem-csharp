@@ -14,8 +14,8 @@ public class User
     public required string DiscordUserId { get; set; }
     public required string DisplayName { get; set; }
     public bool IsAdmin { get; set; } = false;
-    public List<Role> Roles { get; set; } = new();
-    public List<Vote> Votes { get; set; } = new();
+    public List<Role> Roles { get; set; } = [];
+    public List<Vote> Votes { get; set; } = [];
 
     public static async Task OnLogin(OAuthCreatingTicketContext ctx, string serverId, string adminRoleId) // Creates user while logging in
     {
@@ -88,7 +88,7 @@ public class User
     {
         db.Roles.Where(r => r.UserId == Id).Load();
 
-        if (Roles == null || allowedRoles == null || !Roles.Any() || !allowedRoles.Any())
+        if (Roles == null || allowedRoles == null || Roles.Count == 0 || allowedRoles.Length == 0)
         {
             return false;
         }

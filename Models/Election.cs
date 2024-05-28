@@ -9,8 +9,8 @@ public class Election
     public required string Title { get; set; }
     public required DateTime StartTime { get; set; }
     public required DateTime EndTime { get; set; }
-    public List<Candidate> Candidates { get; set; } = new();
-    public List<Vote> Votes { get; set; } = new();
+    public List<Candidate> Candidates { get; set; } = [];
+    public List<Vote> Votes { get; set; } = [];
     public bool IsHappening()
     {
         return StartTime < DateTime.Now && DateTime.Now < EndTime;

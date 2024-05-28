@@ -11,5 +11,5 @@ public class Candidate
     public required Election Election { get; set; }
     public required Guid ElectionId { get; set; }
     
-    public List<Vote> Votes { get; set; } = new();
+    public List<Vote> Votes { get; set; } = [];
 }

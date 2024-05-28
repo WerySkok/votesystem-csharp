@@ -7,12 +7,8 @@ using votesystem_csharp.Models;
 namespace votesystem_csharp.Controllers;
 
 [Authorize(Policy = "Users")]
-public class VoteController : BaseController
+public class VoteController(ILogger<VoteController> logger, ApplicationContext context, IConfiguration configuration) : BaseController(logger, context, configuration)
 {
-    public VoteController(ILogger<VoteController> logger, ApplicationContext context, IConfiguration configuration) : base(logger, context, configuration)
-    {
-    }
-
     [HttpGet("vote/{electionId:guid}")]
     public async Task<IActionResult> Vote(Guid electionId)
     {

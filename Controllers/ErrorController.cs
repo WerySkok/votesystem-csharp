@@ -5,12 +5,8 @@ using votesystem_csharp.Models;
 
 namespace votesystem_csharp.Controllers;
 
-public class ErrorController : BaseController
+public class ErrorController(ILogger<ErrorController> logger, ApplicationContext context, IConfiguration configuration) : BaseController(logger, context, configuration)
 {
-    public ErrorController(ILogger<ErrorController> logger, ApplicationContext context, IConfiguration configuration) : base(logger, context, configuration)
-    {
-    }
-
     [Route("error")]
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()

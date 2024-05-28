@@ -5,12 +5,8 @@ using votesystem_csharp.Models;
 
 namespace votesystem_csharp.Controllers;
 
-public class HomeController : BaseController
+public class HomeController(ILogger<HomeController> logger, ApplicationContext context, IConfiguration configuration) : BaseController(logger, context, configuration)
 {
-    public HomeController(ILogger<HomeController> logger, ApplicationContext context, IConfiguration configuration) : base(logger, context, configuration)
-    {
-    }
-
     [Route("")]
     public async Task<IActionResult> Index()
     {

@@ -6,12 +6,8 @@ using votesystem_csharp.Models;
 namespace votesystem_csharp.Controllers;
 [Route("admin")]
 [Authorize(Policy = "Admins")]
-public class AdminController : BaseController
+public class AdminController(ILogger<AdminController> logger, ApplicationContext context, IConfiguration configuration) : BaseController(logger, context, configuration)
 {
-    public AdminController(ILogger<AdminController> logger, ApplicationContext context, IConfiguration configuration) : base(logger, context, configuration)
-    {
-    }
-
     [Route("")]
     public async Task<IActionResult> Index()
     {
