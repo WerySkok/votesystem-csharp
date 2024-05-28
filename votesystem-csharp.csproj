@@ -8,18 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <UpToDateCheckBuilt Include="wwwroot/css/main.css" Set="Css" />
-    <UpToDateCheckBuilt Include="tailwind.config.js" Set="Css" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="AspNet.Security.OAuth.Discord" Version="8.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.5" />
   </ItemGroup>
-
-  <Target Name="Tailwind" BeforeTargets="Build">
-    <Copy SourceFiles="node_modules/preline/dist/preline.js" DestinationFolder="wwwroot/js" />
-    <Exec Command="npm run build" />
-  </Target>
 
 </Project>
