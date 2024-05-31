@@ -4,24 +4,51 @@ using Microsoft.EntityFrameworkCore;
 using votesystem_csharp.Models;
 
 namespace votesystem_csharp.Controllers;
-[Route("admin")]
-[Authorize(Policy = "Admins")]
+[Route("api/admin")]
+[Authorize(Roles = "admin")]
+[ApiController]
 public class AdminController(ILogger<AdminController> logger, ApplicationContext context, IConfiguration configuration) : BaseController(logger, context, configuration)
 {
-    [Route("")]
-    public async Task<IActionResult> Index()
+    class ElectionSummary
+    {
+        public required Guid Id { get; set; }
+        public required string Title { get; set; }
+        public required DateTime StartTime { get; set; }
+        public required DateTime EndTime { get; set; }
+        public required List<CandidateSummary> Candidates { get; set; }
+        public int? VotesCount { get; set; }
+    }
+    class CandidateSummary
+    {
+        public required Guid Id { get; set; }
+        public required string DisplayName { get; set; }
+
+        public required Guid ElectionId { get; set; }
+        public int? VotesCount { get; set; }
+    }
+    [HttpGet("elections")]
+    public async Task<IActionResult> GetElections()
     {
         var elections = await _db.Elections.Include(e => e.Candidates).Include(e => e.Votes).ToListAsync();
-        return View(elections);
+        var electionsSummary = elections.ConvertAll(e => new ElectionSummary()
+        {
+            Id = e.Id,
+            Title = e.Title,
+            StartTime = e.StartTime,
+            EndTime = e.EndTime,
+            Candidates = e.Candidates.ConvertAll(c => new CandidateSummary()
+            {
+                Id = c.Id,
+                DisplayName = c.DisplayName,
+                ElectionId = c.ElectionId,
+                VotesCount = DateTime.Now > e.StartTime ? c.Votes.Count : null
+            }),
+            VotesCount = DateTime.Now > e.StartTime ? e.Votes.Count : null
+        });
+        return Json(electionsSummary);
     }
-
-    [HttpGet("new_election")]
-    public IActionResult NewElection()
-    {
-        return View();
-    }
-    [HttpPost("new_election")]
-    public async Task<IActionResult> NewElection(string Title, DateTime StartTime, DateTime EndTime)
+    [HttpPost("elections")]
+    public async Task<IActionResult> NewElection([FromForm] string Title, [FromForm] DateTime StartTime, [FromForm] DateTime EndTime)
     {
         if (Title == null || Title == "" || EndTime < StartTime) return BadRequest();
         bool hasConflictingElections = _db.Elections.Any(e =>
@@ -31,19 +58,36 @@ public class AdminController(ILogger<AdminController> logger, ApplicationContext
 
         if (hasConflictingElections) return BadRequest("Конфликтующее время выборов.");
 
-        _db.Elections.Add(new Election() { Id = Guid.NewGuid(), Title = Title, StartTime = StartTime, EndTime = EndTime });
+        Election election = new() { Id = Guid.NewGuid(), Title = Title, StartTime = StartTime, EndTime = EndTime };
+
+        _db.Elections.Add(election);
         await _db.SaveChangesAsync();
-        return Redirect("/admin");
+        return Json(election);
     }
 
-    [HttpGet("edit/{electionId:guid}")]
-    public async Task<IActionResult> EditElection(Guid electionId)
+    [HttpGet("elections/{electionId:guid}")]
+    public async Task<IActionResult> GetElection(Guid electionId)
     {
-        ViewBag.Candidates = await _db.Candidates.Where(c => c.ElectionId == electionId).Include(c => c.Votes).ToListAsync();
-        return View(await _db.Elections.FirstAsync(e => e.Id == electionId));
+        var election = await _db.Elections.Include(e => e.Candidates).Include(e => e.Votes).FirstAsync(e => e.Id == electionId);
+        var electionSummary = new ElectionSummary()
+        {
+            Id = election.Id,
+            Title = election.Title,
+            StartTime = election.StartTime,
+            EndTime = election.EndTime,
+            Candidates = election.Candidates.ConvertAll(c => new CandidateSummary()
+            {
+                Id = c.Id,
+                DisplayName = c.DisplayName,
+                ElectionId = c.ElectionId,
+                VotesCount = DateTime.Now > election.EndTime ? c.Votes.Count : null
+            }),
+            VotesCount = DateTime.Now > election.StartTime ? election.Votes.Count : null
+        };
+        return Json(electionSummary);
     }
-    [HttpPost("edit/{ElectionId:guid}")]
-    public async Task<IActionResult> EditElection(Guid ElectionId, string Title, DateTime StartTime, DateTime EndTime)
+    [HttpPut("elections/{ElectionId:guid}")]
+    public async Task<IActionResult> EditElection(Guid ElectionId, [FromForm]string Title, [FromForm]DateTime StartTime, [FromForm]DateTime EndTime)
     {
         if (Title == null || Title == "" || EndTime < StartTime) return BadRequest();
         bool hasConflictingElections = _db.Elections.Any(e =>
@@ -57,33 +101,34 @@ public class AdminController(ILogger<AdminController> logger, ApplicationContext
         election.StartTime = StartTime;
         election.EndTime = EndTime;
         await _db.SaveChangesAsync();
-        return Redirect("/admin");
+        return Ok();
     }
-    [HttpPost("delete/{ElectionId:guid}")]
+
+    [HttpDelete("elections/{ElectionId:guid}")]
     public async Task<IActionResult> DeleteElection(Guid ElectionId)
     {
         _db.Elections.Remove(await _db.Elections.FirstAsync(e => e.Id == ElectionId));
         await _db.SaveChangesAsync();
-        return Redirect("/admin");
+        return Ok();
     }
 
-    [HttpPost("new_candidate")]
-    public async Task<IActionResult> NewCandidate(Guid ElectionId, string DisplayName)
+    [HttpPost("candidates")]
+    public async Task<IActionResult> NewCandidate([FromForm]Guid ElectionId, [FromForm]string DisplayName)
     {
-        if (DisplayName == null || DisplayName == "" || ElectionId == null) return BadRequest();
+        if (DisplayName == null || DisplayName == "" /* || ElectionId == null */) return BadRequest(); //I'm not sure if it works
         var election = await _db.Elections.FirstAsync(e => e.Id == ElectionId);
         _db.Candidates.Add(new Candidate() { Id = Guid.NewGuid(), DisplayName = DisplayName, ElectionId = ElectionId, Election = election });
         await _db.SaveChangesAsync();
-        return Redirect($"/admin/edit/{ElectionId}");
+        return Json(election);
     }
 
-    [HttpPost("delete_candidate")]
-    public async Task<IActionResult> DeleteCandidate(Guid CandidateId)
+    [HttpDelete("candidates")]
+    public async Task<IActionResult> DeleteCandidate([FromForm]Guid CandidateId)
     {
         var candidate = await _db.Candidates.FirstAsync(c => c.Id == CandidateId);
         var electionId = candidate.ElectionId;
         _db.Candidates.Remove(candidate);
         await _db.SaveChangesAsync();
-        return Redirect($"/admin/edit/{electionId}");
+        return Json(candidate);
     }
 }

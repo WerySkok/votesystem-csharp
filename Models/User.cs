@@ -1,7 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net.Http.Headers;
+using System.Runtime.Intrinsics.Arm;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.OAuth;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,88 +15,57 @@ public class User
 {
     [Key]
     public required Guid Id { get; set; }
-    public required string DiscordUserId { get; set; }
-    public required string DisplayName { get; set; }
+    public required string Login { get; set; }
+    [JsonIgnore]
+    public string? PasswordHash { get; set; }
     public bool IsAdmin { get; set; } = false;
-    public List<Role> Roles { get; set; } = [];
+    public bool IsEligible { get; set; } = false;
+    [JsonIgnore]
     public List<Vote> Votes { get; set; } = [];
 
-    public static async Task OnLogin(OAuthCreatingTicketContext ctx, string serverId, string adminRoleId) // Creates user while logging in
+    static string HashPassword(string input)
     {
-        ApplicationContext db = ctx.HttpContext.RequestServices.GetService<ApplicationContext>()!;
-        var httpClient = new HttpClient();
-        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ctx.AccessToken);
-
-        var userResponse = await httpClient.GetAsync("https://discord.com/api/users/@me");
-        if (!userResponse.IsSuccessStatusCode) return;
-
-        var userJson = JsonDocument.Parse(await userResponse.Content.ReadAsStringAsync()).RootElement;
-        string discordId = userJson.GetProperty("id").GetString()!;
-        string discordUserName = userJson.GetProperty("username").GetString()!;
-        string? discordGlobalName = userJson.GetProperty("global_name").GetString();
-
-        string displayName = discordGlobalName ?? discordUserName;
-
-        var existingUser = await db.Users.FirstOrDefaultAsync(u => u.DiscordUserId == discordId);
-        if (existingUser == null)
-        {
-            existingUser = new User
-            {
-                Id = Guid.NewGuid(),
-                DiscordUserId = discordId,
-                DisplayName = displayName,
-                IsAdmin = false
-            };
-            // Если пользователь не найден, создать новую запись в базе данных
-            db.Users.Add(existingUser);
-        }
-        else
-        {
-            // Если пользователь найден, обновить его данные
-            existingUser.DisplayName = displayName;
-            var Roles = await db.Roles.Where(r => r.UserId == existingUser.Id).ToListAsync();
-            foreach (var role in Roles)
-            {
-                db.Roles.Remove(role);
-            }
-            existingUser.IsAdmin = false;
-        }
-
-        var rolesResponse = await httpClient.GetAsync($"https://discord.com/api/v10/users/@me/guilds/{serverId}/member");
-        var rolesJson = JsonDocument.Parse(await rolesResponse.Content.ReadAsStringAsync()).RootElement;
-
-        foreach (var jsonElement in rolesJson.GetProperty("roles").EnumerateArray())
-        {
-            db.Roles.Add(new Role { RoleDiscordId = jsonElement.GetString()!, User = existingUser, UserId = existingUser.Id });
-            if (jsonElement.GetString() == adminRoleId)
-            {
-                existingUser.IsAdmin = true;
-            }
-        }
-
-        await db.SaveChangesAsync();
+        var inputBytes = Encoding.UTF8.GetBytes(input);
+        var inputHash = SHA256.HashData(inputBytes);
+        return Convert.ToHexString(inputHash);
     }
-    public static async Task<User?> GetUser(HttpContext HttpContext)
+
+
+    public static async Task<User> Register(HttpContext HttpContext, string login, string password)
+    {
+        var dbContext = HttpContext.RequestServices.GetService<ApplicationContext>()!;
+        string passwordHash = HashPassword(password);
+
+        User user = new() { Id = new Guid(), Login = login, PasswordHash = passwordHash };
+        if (!await dbContext.Users.AnyAsync())
+        {
+            user.IsAdmin = true; // Первый пользователь делается админом
+            user.IsEligible = true;
+        }
+
+        await dbContext.Users.AddAsync(user);
+        await dbContext.SaveChangesAsync();
+        return user;
+    }
+
+    public static async Task<User?> GetUserByLoginPassword(HttpContext HttpContext, string login, string password)
+    {
+        var dbContext = HttpContext.RequestServices.GetService<ApplicationContext>()!;
+        string passwordHash = HashPassword(password);
+        return await dbContext.Users.FirstOrDefaultAsync(u => u.Login == login && u.PasswordHash == passwordHash);
+    }
+
+    public static async Task<User?> GetUserByContext(HttpContext HttpContext)
     {
         var dbContext = HttpContext.RequestServices.GetService<ApplicationContext>()!;
         if (!(HttpContext.User?.Identity?.IsAuthenticated ?? false)) return null;
-        var userIdClaim = HttpContext.User.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.NameIdentifier)?.Value;
+        var userIdClaim = HttpContext.User.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.Name)?.Value;
         if (userIdClaim != null)
         {
-            return await dbContext.Users.FirstOrDefaultAsync(u => u.DiscordUserId == userIdClaim);
+            return await dbContext.Users.FirstOrDefaultAsync(u => u.Id == Guid.Parse(userIdClaim));
         }
         return null;
+
     }
 
-    public bool HasRoles(ApplicationContext db, params string[] allowedRoles)
-    {
-        db.Roles.Where(r => r.UserId == Id).Load();
-
-        if (Roles == null || allowedRoles == null || Roles.Count == 0 || allowedRoles.Length == 0)
-        {
-            return false;
-        }
-
-        return Roles.Any(role => allowedRoles.Contains(role.RoleDiscordId));
-    }
 }

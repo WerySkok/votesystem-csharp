@@ -10,10 +10,22 @@ public class HomeController(ILogger<HomeController> logger, ApplicationContext c
     [Route("")]
     public async Task<IActionResult> Index()
     {
-        ViewBag.CurrentElection = await _db.Elections.FirstOrDefaultAsync(e => e.StartTime < DateTime.Now && DateTime.Now < e.EndTime);
-        ViewBag.User = await Models.User.GetUser(HttpContext);
         string[] allowedRoles = _configuration.GetSection("discord:eligible_roles_ids").Get<string[]>()!;
-        ViewBag.IsUserElligible = ViewBag.User?.HasRoles(_db, allowedRoles) ?? false;
-        return View();
+
+        Election? election = await _db.Elections.FirstOrDefaultAsync(e => e.StartTime < DateTime.Now && DateTime.Now < e.EndTime);
+        User? user = await Models.User.GetUserByContext(HttpContext);
+
+        return Json(new IndexView
+        {
+            Election = election,
+            User = user,
+            IsUserElligible = user?.IsEligible ?? false
+        });
+    }
+    public class IndexView
+    {
+        public Election? Election { get; set; }
+        public User? User { get; set; }
+        public bool IsUserElligible { get; set; }
     }
 }

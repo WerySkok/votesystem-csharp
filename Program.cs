@@ -14,7 +14,7 @@ internal class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
-        builder.Services.AddControllersWithViews();
+        builder.Services.AddControllers();
         builder.Configuration.AddJsonFile("config.json");
         string connection = builder.Configuration.GetConnectionString("DefaultConnection")!;
         builder.Services.AddDbContext<ApplicationContext>(options => options.UseSqlite(connection));
@@ -27,28 +27,15 @@ internal class Program
                 {
                     options.LoginPath = "/login";
                     options.LogoutPath = "/logout";
-                })
-                .AddDiscord(options =>
-                {
-                    options.ClientId = builder.Configuration["discord:client_id"]!;
-                    options.ClientSecret = builder.Configuration["discord:client_secret"]!;
-                    options.CorrelationCookie.SameSite = SameSiteMode.Lax;
-                    options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+                });
 
-                    options.Scope.Add("guilds.members.read");
-                    options.Events.OnCreatingTicket = async ctx => await User.OnLogin(ctx, builder.Configuration["discord:server_id"]!, builder.Configuration["discord:admin_role"]!);
-                }
-    );
-
-        builder.Services.AddAuthorizationBuilder()
-            .AddPolicy("Admins", policy => policy.AddRequirements(new RolesRequirement(builder.Configuration["discord:admin_role"]!)))
-            .AddPolicy("Users", policy => policy.AddRequirements(new RolesRequirement(builder.Configuration.GetSection("discord:eligible_roles_ids").Get<string[]>()!)));
+        builder.Services.AddAuthorization();
 
         builder.Services.AddHttpContextAccessor();
-        builder.Services.AddScoped<IAuthorizationHandler, RolesAuthorizationHandler>();
 
 
         var app = builder.Build();
+        app.UseCors(builder => builder.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod().AllowCredentials());
 
         app.UseStatusCodePages();
 
@@ -69,6 +56,7 @@ internal class Program
             app.UseForwardedHeaders();
         }
 
+        app.Use(UserMiddleware.GetUser);
 
         app.UseHttpsRedirection();
         app.UseStaticFiles();
